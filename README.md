@@ -1,2 +1,7 @@
 # pi2tb
-树莓派加装微雪ads1256采集数据发到本机thingsboard
+raspberry pi3b
+Waveshare High-Precision-AD-DA-Board
+
+https://github.com/ul-gh/PiPyADC
+https://github.com/eclipse/paho.mqtt.python
+https://github.com/thingsboard/thingsboard
