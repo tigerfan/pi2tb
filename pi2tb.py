@@ -1,5 +1,5 @@
 """
-pi3tb
+pi2tb
 """
 
 import os
@@ -49,6 +49,7 @@ SHORT_CIRCUIT = POS_AIN0|NEG_AIN0
 # eight-bit code values to scan sequentially from index 0 to last.
 # Eight channels fit on the screen nicely for this example..
 CH_SEQUENCE = (EXT0, EXT1, EXT2, EXT3, EXT4, EXT5, EXT6, EXT7)
+CH_NAME = ('ch0', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7')
 
 ###  CALIBRATION  CONSTANTS  ###
 # This shows how to use individual channel calibration values.
@@ -63,7 +64,7 @@ GAIN_CAL  = np.array((1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0), dtype=np.float)
 
 # Using the Numpy library, digital signal processing is easy as (Raspberry) Pi..
 # However, this constant only specifies the length of a moving average.
-FILTER_SIZE = 10
+FILTER_SIZE = 32
 
 # Thingsboard platform credentials
 THINGSBOARD_HOST = 'localhost'
@@ -72,7 +73,6 @@ topic = "v1/devices/me/telemetry"
 #request = {"method": "getactive", "params": ""} # used if we want the device to check the status on thingsboard by sending an RPC request
 
 running = True
-count = 0
 
 # MQTT on_connect callback function
 def on_connect(client, userdata, flags, rc):
@@ -157,25 +157,17 @@ def do_measurement():
         ads2.read_sequence(CH_SEQUENCE, data_row)
     
         elapsed = time.time() - timestamp
-        if elapsed > 0.5:
-            timestamp += 0.5
+        if elapsed > 3:
+            timestamp += 3
 
             # Calculate moving average of input samples, subtract offset
             ch_unscaled = np.average(filter_buffer, axis=0) - CH_OFFSET
             ch_volts = ch_unscaled * CH_GAIN
             nice_output([int(i) for i in ch_unscaled], ch_volts)
 
-            data['ch0'] = paraval[0]
-            data['ch1'] = paraval[1]
-            data['ch2'] = paraval[2]
-            data['ch3'] = paraval[3]
-            data['ch4'] = paraval[4]
-            data['ch5'] = paraval[5]
-            data['ch6'] = paraval[6]
-            data['ch7'] = paraval[7]
-
+            data = dict(zip(parakey, paraval))
             data_out = json.dumps(data) #create JSON object
-            print("published topic",topic, "data out= ",data_out)
+            print("data out= ",data_out)
             ret = client.publish(topic,data_out,0)    #publish    
 
             del paraval[:]     
@@ -199,10 +191,11 @@ Poti_CH0,  LDR_CH1,     AIN2,     AIN3,     AIN4,     AIN7, Poti NEG, Short 0V
         + "\n\033[J\0338" # Restore cursor position etc.
     )
 
-    paraval.extend([float("{:.2f}".format(i)) for i in volts])
+    paraval.extend([float("{:.3f}".format(i)) for i in volts])
     
 # logic: send data until you get a n
 data = {}
+parakey = list(CH_NAME)
 paraval = []
 
 # Create a new client for receiving messages
